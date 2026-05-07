@@ -1,5 +1,21 @@
+/*
+--------------------------------------------------------------------
+DATABASE: mediconnect (Final Refined Version)
+LOGIC: 
+- Admin is NOT a Doctor.
+- 1 Doctor corresponds to 1 Unique User (UserType = 'Doctor').
+- Username: simple lowercase.
+- Email: username@gmail.com | Password: '123456'.
+- Medical Data: Authentic English.
+--------------------------------------------------------------------
+*/
+
 CREATE DATABASE IF NOT EXISTS mediconnect;
 USE mediconnect;
+
+-- ==========================================
+-- 1. TABLE STRUCTURES
+-- ==========================================
 
 CREATE TABLE Cities (
     City_ID INT AUTO_INCREMENT PRIMARY KEY,
@@ -9,18 +25,18 @@ CREATE TABLE Cities (
 
 CREATE TABLE Users (
     User_ID INT AUTO_INCREMENT PRIMARY KEY,
-    UserName VARCHAR(50),
-    Email VARCHAR(100),
+    UserName VARCHAR(50) UNIQUE,
+    Email VARCHAR(100) UNIQUE,
     Password VARCHAR(255),
     FullName VARCHAR(100),
     Address TEXT,
     Date_Of_Birth DATE,
     Phone VARCHAR(20),
     ProfilePicture VARCHAR(255),
-    UserType VARCHAR(20),
+    UserType VARCHAR(20), -- Admin, Doctor, Patient
     ResetToken VARCHAR(255),
     ResetTokenExpiry DATETIME,
-    Created_at DATETIME,
+    Created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     City_ID INT,
     FOREIGN KEY (City_ID) REFERENCES Cities(City_ID)
 );
@@ -28,16 +44,16 @@ CREATE TABLE Users (
 CREATE TABLE Doctors (
     Doctor_ID INT AUTO_INCREMENT PRIMARY KEY,
     ContactNumber VARCHAR(20),
-    Created_at DATETIME,
-    User_ID INT,
+    Created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    User_ID INT UNIQUE, -- Đảm bảo 1 User chỉ có thể là 1 Doctor
     FOREIGN KEY (User_ID) REFERENCES Users(User_ID)
 );
 
 CREATE TABLE Patients (
     Patient_ID INT AUTO_INCREMENT PRIMARY KEY,
     Address TEXT,
-    Created_at DATETIME,
-    User_ID INT,
+    Created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    User_ID INT UNIQUE, -- Đảm bảo 1 User chỉ có thể là 1 Patient
     FOREIGN KEY (User_ID) REFERENCES Users(User_ID)
 );
 
@@ -61,7 +77,7 @@ CREATE TABLE Diseases (
     Description TEXT,
     Symptoms TEXT,
     Treatment TEXT,
-    Created_at DATETIME,
+    Created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     City_ID INT,
     FOREIGN KEY (City_ID) REFERENCES Cities(City_ID)
 );
@@ -80,7 +96,7 @@ CREATE TABLE Hospitals (
     Address TEXT,
     Phone VARCHAR(20),
     Email VARCHAR(100),
-    Created_at DATETIME,
+    Created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     City_ID INT,
     FOREIGN KEY (City_ID) REFERENCES Cities(City_ID)
 );
@@ -90,7 +106,7 @@ CREATE TABLE MedicalContent (
     Title VARCHAR(255),
     Category VARCHAR(50),
     Body TEXT,
-    PublishedDate DATETIME,
+    PublishedDate DATETIME DEFAULT CURRENT_TIMESTAMP,
     Doctor_ID INT,
     FOREIGN KEY (Doctor_ID) REFERENCES Doctors(Doctor_ID)
 );
@@ -110,7 +126,7 @@ CREATE TABLE Appointments (
     BookingDate DATETIME,
     Status VARCHAR(20),
     Notes TEXT,
-    Created_at DATETIME,
+    Created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     Patient_ID INT,
     Doctor_ID INT,
     Schedule_ID INT,
@@ -123,7 +139,7 @@ CREATE TABLE Feedback (
     Feedback_ID INT AUTO_INCREMENT PRIMARY KEY,
     Message TEXT,
     Rating INT,
-    Created_at DATETIME,
+    Created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     Patient_ID INT,
     Appointment_ID INT,
     FOREIGN KEY (Patient_ID) REFERENCES Patients(Patient_ID),
@@ -134,87 +150,139 @@ CREATE TABLE Notifications (
     Notification_ID INT AUTO_INCREMENT PRIMARY KEY,
     Message TEXT,
     Type VARCHAR(50),
-    Created_at DATETIME
+    Created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE User_Notifications (
     Notification_ID INT,
     User_ID INT,
-    IsRead BOOLEAN,
+    IsRead BOOLEAN DEFAULT FALSE,
     Read_at DATETIME,
     PRIMARY KEY (Notification_ID, User_ID),
     FOREIGN KEY (Notification_ID) REFERENCES Notifications(Notification_ID),
     FOREIGN KEY (User_ID) REFERENCES Users(User_ID)
 );
 
-INSERT INTO Cities (Name, Region) VALUES ('Hà Nội', 'Miền Bắc');
-SET @city1 = LAST_INSERT_ID();
+-- ==========================================
+-- 2. INSERT SEED DATA
+-- ==========================================
 
-INSERT INTO Cities (Name, Region) VALUES ('TP.HCM', 'Miền Nam');
-SET @city2 = LAST_INSERT_ID();
+-- Cities
+INSERT INTO Cities (Name, Region) VALUES 
+('Hà Nội', 'Miền Bắc'),
+('TP. Hồ Chí Minh', 'Miền Nam'),
+('Đà Nẵng', 'Miền Trung'),
+('Cần Thơ', 'Miền Tây'),
+('Hải Phòng', 'Miền Bắc');
 
-INSERT INTO Users 
-(UserName, Email, Password, FullName, Address, Date_Of_Birth, Phone, ProfilePicture, UserType, Created_at, City_ID)
-VALUES ('admin', 'admin@gmail.com', '123456', 'Quản trị viên', 'Hà Nội', '1990-01-01', '0999999999', '', 'Admin', NOW(), @city1);
-SET @admin_id = LAST_INSERT_ID();
+-- Users (1 Admin, 5 Doctors, 5 Patients)
+INSERT INTO Users (UserName, Email, Password, FullName, Address, Date_Of_Birth, Phone, UserType, City_ID) VALUES 
+('admin', 'admin@gmail.com', '123456', 'Nguyễn Phan Anh', 'Hà Nội', '1985-01-01', '0901234567', 'Admin', 1),
+-- Doctors
+('nguyenvanhoang', 'nguyenvanhoang@gmail.com', '123456', 'BS. Nguyễn Văn Hoàng', 'TP.HCM', '1975-10-10', '0912345678', 'Doctor', 2),
+('tranthilan', 'tranthilan@gmail.com', '123456', 'BS. Trần Thị Lan', 'Đà Nẵng', '1982-05-05', '0923456789', 'Doctor', 3),
+('lequangvinh', 'lequangvinh@gmail.com', '123456', 'BS. Lê Quang Vinh', 'Hà Nội', '1970-12-12', '0911223344', 'Doctor', 1),
+('phamthimai', 'phamthimai@gmail.com', '123456', 'BS. Phạm Thị Mai', 'Cần Thơ', '1988-08-08', '0933445566', 'Doctor', 4),
+('dangminhduc', 'dangminhduc@gmail.com', '123456', 'BS. Đặng Minh Đức', 'Hải Phòng', '1984-03-03', '0944556677', 'Doctor', 5),
+-- Patients
+('phamquoccuong', 'phamquoccuong@gmail.com', '123456', 'Phạm Quốc Cường', 'Cần Thơ', '1992-07-20', '0934567890', 'Patient', 4),
+('lethithanhhoa', 'lethithanhhoa@gmail.com', '123456', 'Lê Thị Thanh Hoa', 'Hải Phòng', '1990-12-12', '0945678901', 'Patient', 5),
+('tranhuyhoang', 'tranhuyhoang@gmail.com', '123456', 'Trần Huy Hoàng', 'Hà Nội', '1995-01-20', '0988776655', 'Patient', 1),
+('nguyenthidieu', 'nguyenthidieu@gmail.com', '123456', 'Nguyễn Thị Diệu', 'TP.HCM', '1987-04-15', '0977665544', 'Patient', 2),
+('vomanhthang', 'vomanhthang@gmail.com', '123456', 'Võ Mạnh Thắng', 'Đà Nẵng', '1993-09-09', '0966554433', 'Patient', 3);
 
-INSERT INTO Users 
-(UserName, Email, Password, FullName, Address, Date_Of_Birth, Phone, ProfilePicture, UserType, Created_at, City_ID)
-VALUES ('doctor1', 'doc1@gmail.com', '123456', 'Nguyễn Văn A', 'Hà Nội', '1980-01-01', '0123456789', '', 'Doctor', NOW(), @city1);
-SET @doctor_user_id = LAST_INSERT_ID();
+-- Doctors Table (Linked to User_ID 2, 3, 4, 5, 6)
+INSERT INTO Doctors (ContactNumber, User_ID) VALUES 
+('0912345678', 2),
+('0923456789', 3),
+('0911223344', 4),
+('0933445566', 5),
+('0944556677', 6);
 
-INSERT INTO Users 
-(UserName, Email, Password, FullName, Address, Date_Of_Birth, Phone, ProfilePicture, UserType, Created_at, City_ID)
-VALUES ('patient1', 'pat1@gmail.com', '123456', 'Trần Thị B', 'TP.HCM', '1995-05-05', '0987654321', '', 'Patient', NOW(), @city2);
-SET @patient_user_id = LAST_INSERT_ID();
+-- Patients Table (Linked to User_ID 7, 8, 9, 10, 11)
+INSERT INTO Patients (Address, User_ID) VALUES 
+('Cần Thơ', 7),
+('Hải Phòng', 8),
+('Hà Nội', 9),
+('TP.HCM', 10),
+('Đà Nẵng', 11);
 
-INSERT INTO Doctors (ContactNumber, Created_at, User_ID)
-VALUES ('0123456789', NOW(), @doctor_user_id);
-SET @doctor_id = LAST_INSERT_ID();
+-- Specialization (Authentic English)
+INSERT INTO Specialization (Name, Description) VALUES 
+('Cardiology', 'Treatment of heart-related issues like heart failure and valve disease.'),
+('Endocrinology', 'Specializes in hormones and conditions like diabetes and thyroid issues.'),
+('Pediatrics', 'Comprehensive medical care for infants and children.'),
+('Neurology', 'Diagnosis and treatment of brain and nervous system disorders.'),
+('Oncology', 'Medical field dedicated to diagnosing and treating cancer.');
 
-INSERT INTO Patients (Address, Created_at, User_ID)
-VALUES ('TP.HCM', NOW(), @patient_user_id);
-SET @patient_id = LAST_INSERT_ID();
+-- Doctor_Specializations
+INSERT INTO Doctor_Specializations (Doctor_ID, Specialization_ID) VALUES 
+(1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
 
-INSERT INTO Specialization (Name, Description)
-VALUES ('Tim mạch', 'Chuyên về tim');
-SET @spec1 = LAST_INSERT_ID();
+-- Diseases (Authentic English)
+INSERT INTO Diseases (Name, Description, Symptoms, Treatment, City_ID) VALUES 
+('Hypertension', 'Persistent high blood pressure that can lead to heart attacks.', 'Headaches, dizziness, chest pain.', 'DASH diet and blood pressure medications.', 1),
+('Type 2 Diabetes', 'Affects how the body processes sugar for energy.', 'Extreme thirst, frequent urination, fatigue.', 'Insulin, healthy diet, and Metformin.', 2),
+('Migraine', 'Severe, throbbing headache often with nausea.', 'Sensitivity to light, blind spots, nausea.', 'Rest in a dark room and pain relief medicine.', 3),
+('Asthma', 'Airways become inflamed and produce extra mucus.', 'Shortness of breath, wheezing, coughing.', 'Inhalers and avoiding allergens.', 4),
+('Gastritis', 'Inflammation of the stomach lining.', 'Upper abdominal pain, bloating, nausea.', 'Antacids and lifestyle adjustments.', 5);
 
-INSERT INTO Specialization (Name, Description)
-VALUES ('Da liễu', 'Chuyên về da');
-SET @spec2 = LAST_INSERT_ID();
+-- DoctorDiseases
+INSERT INTO DoctorDiseases (Doctor_ID, Disease_ID) VALUES 
+(1, 1), (2, 2), (3, 3), (4, 4), (5, 5);
 
-INSERT INTO Doctor_Specializations (Doctor_ID, Specialization_ID)
-VALUES (@doctor_id, @spec1),
-       (@doctor_id, @spec2);
+-- Hospitals
+INSERT INTO Hospitals (Name, Address, Phone, Email, City_ID) VALUES 
+('Bệnh viện Bạch Mai', 'Giải Phóng, Hà Nội', '0243869373', 'bachmai@gmail.com', 1),
+('Bệnh viện Chợ Rẫy', 'Nguyễn Chí Thanh, TP.HCM', '0283855413', 'choray@gmail.com', 2),
+('Bệnh viện TW Quân đội 108', 'Trần Hưng Đạo, Hà Nội', '0695724000', 'bv108@gmail.com', 1),
+('Bệnh viện Đa khoa Đà Nẵng', 'Hải Phòng, Đà Nẵng', '0236382111', 'danang@gmail.com', 3),
+('Bệnh viện Đa khoa Cần Thơ', '315 Nguyễn Văn Linh, Cần Thơ', '0292382123', 'cantho@gmail.com', 4);
 
-INSERT INTO Diseases (Name, Description, Symptoms, Treatment, Created_at, City_ID)
-VALUES ('Cảm cúm', 'Bệnh thông thường', 'Sốt, ho', 'Uống thuốc', NOW(), @city1);
-SET @disease_id = LAST_INSERT_ID();
+-- MedicalContent (Authentic English)
+INSERT INTO MedicalContent (Title, Category, Body, Doctor_ID) VALUES 
+('Heart Health 101', 'Cardiology', 'Regular exercise and low-fat diet are keys to a healthy heart...', 1),
+('Diabetes Management', 'Endocrinology', 'Consistent glucose monitoring helps prevent kidney complications...', 2),
+('Immunization Schedule', 'Pediatrics', 'Vaccines are critical for preventing childhood diseases like Polio...', 3),
+('Understanding Strokes', 'Neurology', 'Recognizing the FAST signs can save lives during a brain attack...', 4),
+('Early Cancer Detection', 'Oncology', 'Regular screenings are the most effective way to improve survival rates...', 5);
 
-INSERT INTO DoctorDiseases (Doctor_ID, Disease_ID)
-VALUES (@doctor_id, @disease_id);
+-- DoctorSchedules
+INSERT INTO DoctorSchedules (AvailableDate, StartTime, EndTime, Status, Doctor_ID) VALUES 
+('2026-05-10', '08:00:00', '11:00:00', 'Available', 1),
+('2026-05-10', '14:00:00', '17:00:00', 'Available', 2),
+('2026-05-11', '09:00:00', '12:00:00', 'Booked', 3),
+('2026-05-11', '13:00:00', '16:00:00', 'Available', 4),
+('2026-05-12', '10:00:00', '15:00:00', 'Available', 5);
 
-INSERT INTO Hospitals (Name, Address, Phone, Email, Created_at, City_ID)
-VALUES ('Bệnh viện Bạch Mai', 'Hà Nội', '0123456789', 'bachmai@gmail.com', NOW(), @city1);
+-- Appointments (Authentic English Notes)
+INSERT INTO Appointments (BookingDate, Status, Notes, Patient_ID, Doctor_ID, Schedule_ID) VALUES 
+(NOW(), 'Confirmed', 'Cardiac follow-up regarding blood pressure stability.', 1, 1, 1),
+(NOW(), 'Pending', 'Endocrine checkup for insulin dosage adjustment.', 2, 2, 2),
+(NOW(), 'Completed', 'Routine child wellness exam and flu vaccine.', 3, 3, 3),
+(NOW(), 'Cancelled', 'Patient unable to attend; reschedule requested.', 4, 4, 4),
+(NOW(), 'Confirmed', 'Initial oncology screening for early diagnosis.', 5, 5, 5);
 
-INSERT INTO MedicalContent (Title, Category, Body, PublishedDate, Doctor_ID)
-VALUES ('Cách phòng cảm cúm', 'Sức khỏe', 'Nội dung bài viết...', NOW(), @doctor_id);
+-- Feedback (Authentic English)
+INSERT INTO Feedback (Message, Rating, Patient_ID, Appointment_ID) VALUES 
+('Excellent doctor, very attentive to details.', 5, 1, 1),
+('Good service, but the clinic was quite busy.', 4, 2, 2),
+('My child felt very comfortable with the doctor.', 5, 3, 3),
+('Helpful advice for managing my neurological symptoms.', 5, 4, 4),
+('Professional oncology unit and compassionate staff.', 5, 5, 5);
 
-INSERT INTO DoctorSchedules (AvailableDate, StartTime, EndTime, Status, Doctor_ID)
-VALUES ('2026-03-20', '08:00:00', '10:00:00', 'Available', @doctor_id);
-SET @schedule_id = LAST_INSERT_ID();
+-- Notifications
+INSERT INTO Notifications (Message, Type, Created_at) VALUES 
+('Your checkup is confirmed.', 'Appointment', NOW()),
+('New medical results available.', 'Report', NOW()),
+('Daily Tip: Stay hydrated.', 'Health', NOW()),
+('Maintenance tonight at 12 AM.', 'System', NOW()),
+('Thank you for your feedback!', 'Review', NOW());
 
-INSERT INTO Appointments (BookingDate, Status, Notes, Created_at, Patient_ID, Doctor_ID, Schedule_ID)
-VALUES (NOW(), 'Booked', 'Khám tổng quát', NOW(), @patient_id, @doctor_id, @schedule_id);
-SET @appointment_id = LAST_INSERT_ID();
-
-INSERT INTO Feedback (Message, Rating, Created_at, Patient_ID, Appointment_ID)
-VALUES ('Bác sĩ rất tốt', 5, NOW(), @patient_id, @appointment_id);
-
-INSERT INTO Notifications (Message, Type, Created_at)
-VALUES ('Bạn có lịch khám mới', 'Appointment', NOW());
-SET @noti_id = LAST_INSERT_ID();
-
-INSERT INTO User_Notifications (Notification_ID, User_ID, IsRead, Read_at)
-VALUES (@noti_id, @doctor_user_id, FALSE, NULL);
+-- User_Notifications
+INSERT INTO User_Notifications (Notification_ID, User_ID, IsRead, Read_at) VALUES 
+(1, 7, FALSE, NULL),
+(2, 9, TRUE, NOW()),
+(3, 1, FALSE, NULL),
+(4, 2, FALSE, NULL),
+(5, 3, TRUE, NOW());
