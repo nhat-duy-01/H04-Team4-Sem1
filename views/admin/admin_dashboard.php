@@ -3,6 +3,14 @@ session_start();
 require_once('../../config/connectDB.php');
 require_once('../../controller/admin/DashboardController.php');
 
+// 1. Initialize DB connection first
+$db = new ConnectDB();
+$conn = $db->connection();
+
+// 2. Initialize Controller and fetch data
+$dashboard = new DashboardController($conn);
+$stats = $dashboard->getStats();
+
 if (isset($_POST['login'])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
@@ -27,35 +35,40 @@ if (isset($_POST['login'])) {
         exit();
 
     } else {
-        echo "Sai tài khoản hoặc mật khẩu!";
+        echo "Incorrect username or password!";
     }
 }
 
-$conn = (new ConnectDB())->connection();
-$stats = handleDashboard($conn);
 ?>
 
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Admin Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <title>Admin Dashboard</title>
 </head>
 <body>
 <header>
-    <h1>Trang Quản Trị</h1>
-    <p>Xin chào:<?= isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : ' ' ?> đã đến với MediConnect</p>
+    <h1>Admin Panel</h1>
+    <p>Welcome, <?= isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : 'Guest' ?> to MediConnect</p>
 </header>
 
 <nav>
     <a href="admin_dashboard.php">Dashboard</a>
-    <a href="manage_specializations.php">specializations</a>
+    <a href="manage_specializations.php">Specializations</a>
     <a href="manage_doctors.php">Doctors</a>
     <a href="manage_patients.php">Patients</a>
+    <a href="manage_cities.php">Cities</a>
+    <a href="manage_schedule.php">Schedule</a>
+    <a href="manage_feedback.php">Feedback</a>
+    <a href="manage_hospital.php">Hospital</a>
+
+    <a href="../logout.php" class="logout-link">Logout</a>
 </nav>
 
 <div class="container">
-    <h2>Thống kê hệ thống</h2>
+    <h2>System Statistics</h2>
     <div class="stats">
         <div class="card">
             <h3>Users</h3>
