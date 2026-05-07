@@ -1,45 +1,42 @@
 <?php
-    require_once '../models/customers.php'; 
+    require_once '../models/admin/Users.php'; 
     session_start();
     $users = new Users();
     $error_msg = "";
 
     if(isset($_POST['btnRegister'])){
-        // Basic sanitization
         $userName = trim($_POST['username']);
         $password = $_POST['password']; 
         $fullName = trim($_POST['fullname']);
         $email    = trim($_POST['email']);
+        $phone    = trim($_POST['phone']);
         $address  = trim($_POST['address']);
         $userType = $_POST['usertype']; 
         $dob      = $_POST['dob'];
 
         // --- CONSTRAINTS / VALIDATION ---
         
-        // 1. Check if username is too short
         if (strlen($userName) < 5) {
             $error_msg = "Username must be at least 5 characters long.";
         } 
-        // 2. Check password strength (min 8 chars)
         elseif (strlen($password) < 6) {
             $error_msg = "Password must be at least 6 characters long.";
         }
-        // 3. Validate Email format
+        // Kiểm tra định dạng số điện thoại (Ví dụ: 0912345678)
+        elseif (!preg_match('/^[0-9]{10}$/', $phone)) {
+            $error_msg = "Invalid phone number. It must be 10 digits.";
+        }
         elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error_msg = "Invalid email format.";
         }
-        // 4. Validate Date of Birth (must not be in the future)
         elseif (strtotime($dob) > time()) {
             $error_msg = "Date of birth cannot be in the future.";
         }
-        // 5. Check if Username already exists
         elseif ($users->checkSignIn($userName)) {
             $error_msg = "This username is already taken!";
         } 
         else {
-            // All checks passed - Proceed to Insert
-            // Note: In a real app, use password_hash($password, PASSWORD_DEFAULT) here
-            $result = $users->insertUsers($userName, $password, $fullName, $email, $address, $userType, $dob);
+            $result = $users->insertUsers($userName, $password, $fullName, $email, $phone, $address, $userType, $dob);
             
             if($result) {
                 $newUser = $users->checkSignIn($userName);
@@ -110,6 +107,12 @@
             <label>Full Name</label>
             <input type="text" name="fullname" placeholder="John Doe" required
                    value="<?php echo isset($_POST['fullname']) ? htmlspecialchars($_POST['fullname']) : ''; ?>">
+        </div>
+
+        <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" name="phone" placeholder="09xxxxxxxx" required
+                value="<?php echo isset($_POST['phone']) ? htmlspecialchars($_POST['phone']) : ''; ?>">
         </div>
 
         <div class="form-group">
